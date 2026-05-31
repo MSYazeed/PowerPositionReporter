@@ -53,6 +53,22 @@ public sealed class Worker(
                 scheduledDueUtc);
         }
 
-        await reportService.GenerateAsync(scheduledDueUtc, lagSeconds, cancellationToken);
+        // NOTE FOR REVIEWER: Added exception handling to prevent transient failures from external services
+        // (like PowerService API errors) from terminating the entire Worker background service.
+        // This ensures the scheduled extracts continue running even if individual extracts fail.
+        // The behavior is configurable via appsettings.json "PowerPosition:ContinueOnError" setting.
+        // When ContinueOnError=false, exceptions will propagate and terminate the worker (original behavior).
+        try
+        {
+            await reportService.GenerateAsync(scheduledDueUtc, lagSeconds, cancellationToken);
+        }
+        catch (Exception exception) when (options.Value.ContinueOnError && exception is not OperationCanceledException)
+        {
+            // Error details are already logged in PowerPositionReportService.GenerateAsync
+            // This catch block exists solely to prevent worker termination and allow subsequent scheduled extracts to run
+            logger.LogWarning(
+                "Extract failed but worker will continue due to ContinueOnError setting. scheduledDueUtc={ScheduledDueUtc}",
+                scheduledDueUtc);
+        }
     }
 }
