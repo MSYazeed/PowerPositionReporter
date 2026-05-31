@@ -3,6 +3,7 @@ apiVersion: backstage.io/v1alpha1
 kind: System
 metadata:
   name: etrm-coding-challenges
+  description: .NET 10 Worker Service using Microsoft.Extensions.Hosting, Microsoft.Extensions.Logging, xUnit, and the supplied PowerService .NET Standard library.
 spec:
   domain: etrm
   owner: group:default/etrm-development
